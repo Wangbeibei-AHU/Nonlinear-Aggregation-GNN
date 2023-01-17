@@ -11,4 +11,3 @@ Here are the instruction commands for running the codes.
 python main.py --dataset cora --aggtype Generalized-mean
 ```
 
-
