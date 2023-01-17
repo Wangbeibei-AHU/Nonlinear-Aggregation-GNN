@@ -12,7 +12,7 @@ from utils import *
 
 # Training settings
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default='citeseer', help='dataset')
+parser.add_argument('--dataset', type=str, default='pubmed', help='dataset')
 parser.add_argument('--aggtype', type=str, default='Softmax', choices=['Generalized-mean', 'Polynomial', 'Softmax'], help='aggtype')
 parser.add_argument('--no-cuda', action='store_true', default=False, help='Disables CUDA training.')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
@@ -49,11 +49,11 @@ def main(num):
 
     # load model
     if args.aggtype == 'Generalized-mean':
-    	model = NonlinearGCN_G(nfeat=features.shape[1], nhid=args.hidden, nclass=labels.max().item()+1, dropout=args.dropout)
+    	model = NonlinearGCN_G(nfeat=features.shape[1], nhid=args.hidden, nclass=labels.max().item()+1, dropout=args.dropout, s_f=args.scale_factor)
     if args.aggtype == 'Polynomial':
-    	model = NonlinearGCN_P(nfeat=features.shape[1], nhid=args.hidden, nclass=labels.max().item()+1, dropout=args.dropout)
+    	model = NonlinearGCN_P(nfeat=features.shape[1], nhid=args.hidden, nclass=labels.max().item()+1, dropout=args.dropout, s_f=args.scale_factor)
     if args.aggtype == 'Softmax':
-    	model = NonlinearGCN_S(nfeat=features.shape[1], nhid=args.hidden, nclass=labels.max().item()+1, dropout=args.dropout)
+    	model = NonlinearGCN_S(nfeat=features.shape[1], nhid=args.hidden, nclass=labels.max().item()+1, dropout=args.dropout, s_f=args.scale_factor)
 
     print("Network Fitting...")
     training = Training(model, args, device)
