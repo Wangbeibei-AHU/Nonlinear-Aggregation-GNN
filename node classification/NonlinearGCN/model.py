@@ -9,11 +9,11 @@ from torch.nn.modules.module import Module
 
 
 class NonlinearGCN_G(nn.Module):
-    def __init__(self, nfeat, nhid, nclass, dropout=0.5, with_bias=True):
+    def __init__(self, nfeat, nhid, nclass, dropout=0.5, s_f=1., with_bias=True):
         super(NonlinearGCN_G, self).__init__()
         self.nfeat = nfeat
         self.nclass = nclass
-        self.layer1 = GraphConvolution_G(nfeat, nhid, with_bias=with_bias)
+        self.layer1 = GraphConvolution_G(nfeat, nhid, s_f, with_bias=with_bias)
         self.layer2 = GraphConvolution(nhid, nclass, with_bias=with_bias)
         self.dropout = dropout
 
@@ -26,11 +26,11 @@ class NonlinearGCN_G(nn.Module):
 
 
 class NonlinearGCN_P(nn.Module):
-    def __init__(self, nfeat, nhid, nclass, dropout=0.5, with_bias=True):
+    def __init__(self, nfeat, nhid, nclass, dropout=0.5, s_f=2. with_bias=True):
         super(NonlinearGCN_P, self).__init__()
         self.nfeat = nfeat
         self.nclass = nclass
-        self.layer1 = GraphConvolution_P(nfeat, nhid, with_bias=with_bias)
+        self.layer1 = GraphConvolution_P(nfeat, nhid, s_f, with_bias=with_bias)
         self.layer2 = GraphConvolution(nhid, nclass, with_bias=with_bias)
         self.dropout = dropout
 
@@ -43,11 +43,11 @@ class NonlinearGCN_P(nn.Module):
 
 
 class NonlinearGCN_S(nn.Module):
-    def __init__(self, nfeat, nhid, nclass, dropout=0.5, with_bias=True):
+    def __init__(self, nfeat, nhid, nclass, dropout=0.5, s_f=2., with_bias=True):
         super(NonlinearGCN_S, self).__init__()
         self.nfeat = nfeat
         self.nclass = nclass
-        self.layer1 = GraphConvolution_S(nfeat, nhid, with_bias=with_bias)
+        self.layer1 = GraphConvolution_S(nfeat, nhid, s_f, with_bias=with_bias)
         self.layer2 = GraphConvolution(nhid, nclass, with_bias=with_bias)
         self.dropout = dropout
 
@@ -92,11 +92,11 @@ class GraphConvolution(Module):
 
 
 class GraphConvolution_G(Module):
-    def __init__(self, in_features, out_features, with_bias=True):
+    def __init__(self, in_features, out_features, s_f, with_bias=True):
         super(GraphConvolution_G, self).__init__()
         self.in_features = in_features
         self.out_features = out_features        
-
+        self.s_f = s_f
         self.weight = Parameter(torch.FloatTensor(in_features, out_features))
         if with_bias:
             self.bias = Parameter(torch.FloatTensor(out_features))
@@ -111,7 +111,8 @@ class GraphConvolution_G(Module):
             self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, input, adj, p):
-        p = p+1.  # make p greater than 1
+        # p = torch.sigmoid(p) + self.s_f  ## make sure p greater than 1
+        p = p+1. 
         support = torch.mm(input, self.weight)
         mu = support.min() 
         pre_sup = support - mu  
@@ -130,11 +131,11 @@ class GraphConvolution_G(Module):
 
 
 class GraphConvolution_P(Module):
-    def __init__(self, in_features, out_features, with_bias=True):
+    def __init__(self, in_features, out_features, s_f, with_bias=True):
         super(GraphConvolution_P, self).__init__()
         self.in_features = in_features
         self.out_features = out_features        
-        
+        self.s_f = s_f     
         self.weight = Parameter(torch.FloatTensor(in_features, out_features))
         if with_bias:
             self.bias = Parameter(torch.FloatTensor(out_features))
@@ -149,6 +150,7 @@ class GraphConvolution_P(Module):
             self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, input, adj, p): 
+        # p = torch.sigmoid(p)*self.s_f    ## contol the value range of p 
         support = torch.mm(input, self.weight)
         mu = torch.min(support)       
         pre_sup = support - mu
@@ -167,10 +169,11 @@ class GraphConvolution_P(Module):
 
 
 class GraphConvolution_S(Module):
-    def __init__(self, in_features, out_features, with_bias=True):
+    def __init__(self, in_features, out_features, s_f, with_bias=True):
         super(GraphConvolution_S, self).__init__()
         self.in_features = in_features
-        self.out_features = out_features        
+        self.out_features = out_features
+        self.s_f = s_f        
         self.weight = Parameter(torch.FloatTensor(in_features, out_features))
         if with_bias:
             self.bias = Parameter(torch.FloatTensor(out_features))
@@ -185,21 +188,13 @@ class GraphConvolution_S(Module):
             self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, input, T, adj, edge, p):
-        p = torch.sigmoid(p)*2.    
+        # p = torch.sigmoid(p)*self.s_f    ## contol the value range of p 
         support = torch.mm(input, self.weight)
         e = p * support 
         softmax = torch.exp(e - e.max())
-        
         weights = softmax[edge[1],:]/(torch.matmul(adj, softmax)[edge[0],:]+1e-6)
         weights = F.dropout(weights, 0.5, training=self.training)
         output = torch.matmul(T, support[edge[1],:]*weights)
-
-        # val = adj.to_dense()[edge[0],edge[1]]
-        # deg=scatter_add(softmax[edge[1],:]*val.unsqueeze(1), edge[0], dim=0, dim_size=softmax.size()[0])
-        # weights = (softmax[edge[1],:]*val.unsqueeze(1))/(deg[edge[0],:])
-        # weights = F.dropout(weights, 0.6, training=self.training)
-        # mask =support[edge[1],:]*weights
-        # output = scatter_add(mask, edge[0], dim=0, dim_size=softmax.size()[0])
 
         if self.bias is not None:
             return output + self.bias
