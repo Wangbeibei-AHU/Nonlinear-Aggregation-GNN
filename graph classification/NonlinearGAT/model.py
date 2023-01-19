@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn import ModuleList, Linear, BatchNorm1d
 from torch_geometric.nn import global_mean_pool, global_add_pool
-from layer import GATConv_G, GATConv_P, GATConv_S, 
+from layer import GATConv_G, GATConv_P, GATConv_S
 from util import Config
 import pdb
 
