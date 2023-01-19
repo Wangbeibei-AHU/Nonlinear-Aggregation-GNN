@@ -64,7 +64,7 @@ class GCNConv_P(nn.Module):
         adj = torch.sparse_coo_tensor(edge,norm,(x.size(0),x.size(0)))
         if self.NonLinear:
             p = torch.sigmoid(self.p)*2.
-            mumu = x.min()
+            mu = x.min()
             x_top = torch.pow(x-mu+1e-6, p+1)
             x_down = torch.pow(x-mu+1e-6, p)
             out = torch.spmm(adj, x_top)/(torch.spmm(adj, x_down)+1e-6) + (1 + self.eps)*x + mu 
