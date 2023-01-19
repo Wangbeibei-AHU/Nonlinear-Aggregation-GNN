@@ -506,9 +506,10 @@ class EstimateP(nn.Module):
     """docstring for ClassName"""
     def __init__(self, n):
         super(EstimateP, self).__init__()
-        self.p = nn.Parameter(torch.FloatTensor(1, n))
-        stdv = 1./math.sqrt(self.p.size(1))
-        torch.nn.init.uniform_(self.p.data, -stdv, stdv)
+        self.p = nn.Parameter(torch.ones(1, n))
+        #self.p = nn.Parameter(torch.FloatTensor(1, n))
+        #stdv = 1./math.sqrt(self.p.size(1))
+        #torch.nn.init.uniform_(self.p.data, -stdv, stdv)
 
     def forward(self):
         return self.p
