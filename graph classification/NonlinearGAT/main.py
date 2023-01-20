@@ -126,7 +126,7 @@ def main(dataset, hid, lr, dropout):
     best_epoch = int(torch.argmax(mean_test_acc).data)
     mean_acc = torch.mean(test_acc_values[:, best_epoch])
     mean_std = torch.std(test_acc_values[:, best_epoch])
-    print('test_acc: ', mean_acc, ' best_std: ', mean_std)
+    print('test_acc: ', mean_acc, ' test_std: ', mean_std)
     return mean_acc.item(), mean_std.item()
 
 
