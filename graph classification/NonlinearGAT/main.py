@@ -1,6 +1,5 @@
 from __future__ import division
 from __future__ import print_function
-
 import os.path as osp
 import time
 import argparse
@@ -51,8 +50,84 @@ def set_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
 
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', type=str, default="PROTEINS", help='name of dataset')
+    parser.add_argument('--mod', type=str, default="Generalized-mean", choices=['Generalized-mean', 'Polynomial', 'Softmax'], help='nonlinear aggregation to be used')
+    parser.add_argument('--seed', type=int, default=809, help='random seed')
+    parser.add_argument('--epochs', type=int, default=300, help='number of epochs to train')
+    parser.add_argument('--lr', type=float, default=1e-2, help='initial learning rate')
+    parser.add_argument('--wd', type=float, default=1e-3, help='weight decay value')
+    parser.add_argument('--n_layer', type=int, default=2, help='number of hidden layers')
+    parser.add_argument('--hid', type=int, default=32, help='size of input hidden units')
+    parser.add_argument('--heads', type=int, default=1, help='number of attention heads')
+    parser.add_argument('--dropout', type=float, default=0., help='dropout rate')
+    parser.add_argument('--alpha', type=float, default=0.2, help='alpha for the leaky_relu')
+    parser.add_argument('--kfold', type=int, default=10, help='number of kfold')
+    parser.add_argument('--batch_size', type=int, default=32, help='batch size')
+    parser.add_argument('--readout', type=str, default="add", choices=["add", "mean"], help='readout function: add, mean')
+    args = parser.parse_args()
+    print(args)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    set_seed(args.seed)
+
+    path = osp.join(osp.dirname(osp.realpath(__file__)), '.', 'data', args.dataset)
     
-def main(dataset, hid, lr, dropout):
+    dataset = TUDataset(path, name=args.dataset, pre_transform=Constant()).shuffle()
+
+    train_graphs, test_graphs = separate_data(len(dataset), args.kfold)
+
+    kfold_num = args.kfold
+    print('Dataset:', args.dataset)
+    print('# of graphs:', len(dataset))
+    print('# of classes:', dataset.num_classes)
+          
+    test_acc_values = torch.zeros(kfold_num, args.epochs)
+    print('model: ', args.mod) 
+    for idx in range(kfold_num):
+        print('=============================================================================')
+        print(kfold_num, 'fold cross validation:', idx+1)
+        
+        idx_train = train_graphs[idx]
+        idx_test = test_graphs[idx]
+
+        train_dataset = dataset[idx_train]
+        test_dataset = dataset[idx_test]
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, worker_init_fn=args.seed)
+        test_loader = DataLoader(test_dataset, batch_size=args.batch_size)
+        
+        t_start = time.time()
+        best_epoch = 0
+
+        config = Config(mod=args.mod, nhid=args.hid, nclass=dataset.num_classes, 
+                        nfeat=dataset.num_features, dropout=args.dropout, 
+                        heads=args.heads, alpha=args.alpha, 
+                        n_layer=args.n_layer, readout=args.readout)
+            
+        model = NonLinearGAT(config).to(device)
+        optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd, amsgrad=False)
+        scheduler = MultiStepLR(optimizer, milestones=[50,100,150,200,250,300,350,400,450,500], gamma=0.5)
+
+        for epoch in range(args.epochs):
+            train_loss = train(model, train_loader, optimizer, device)
+            train_acc = test(model, train_loader, device)
+            test_acc = test(model, test_loader, device)
+            test_acc_values[idx, epoch] = test_acc
+            scheduler.step()
+        
+        print("Optimization Finished!")
+        print("Total time elapsed: {:.4f}s".format(time.time() - t_start))
+
+    print('=============================================================================')
+    mean_test_acc = torch.mean(test_acc_values, dim=0)
+    best_epoch = int(torch.argmax(mean_test_acc).data)
+    mean_acc = torch.mean(test_acc_values[:, best_epoch])
+    mean_std = torch.std(test_acc_values[:, best_epoch])
+    print('test_acc: ', mean_acc, ' best_std: ', mean_std)
+
+    
+def main_multi(dataset, hid, lr, dropout):
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default="PROTEINS", help='name of dataset')
     parser.add_argument('--mod', type=str, default="Generalized-mean", choices=['Generalized-mean', 'Polynomial', 'Softmax'], help='nonlinear aggregation to be used')
@@ -131,7 +206,11 @@ def main(dataset, hid, lr, dropout):
 
 
 if __name__ == '__main__':
-    import numpy as np
+    #main()
+    
+    ## Tips
+    "Note that If the results are inconsistent with reported ones due to differences in python environment or equipment," 
+    "you can get your own parameters in the following ways:"
     datasets = ['MUTAG', 'PTC_MR', 'PROTEINS']
     dnum = len(datasets)
     lrs = [0.001,0.03,0.01]
@@ -151,7 +230,7 @@ if __name__ == '__main__':
                     res = np.zeros(5)
                     std = np.zeros(5)
                     for j in range(5):
-                        res[j],std[j]=main(dataset, h, lr, d)
+                        res[j],std[j]=main_multi(dataset, h, lr, d)
                     mean_acc = np.mean(res)
                     mean_std = np.mean(std)
                     print('finall result:', mean_acc, '+', mean_std )
