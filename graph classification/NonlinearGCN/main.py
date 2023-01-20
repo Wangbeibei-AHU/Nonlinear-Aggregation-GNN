@@ -26,7 +26,7 @@ args = parser.parse_args()
 # best_epoch = np.argmax(mean_test_acc)
 # mean_acc = np.mean(test_accs[:, best_epoch])
 # mean_std = np.std(test_accs[:, best_epoch])
-# print('test_acc: ', mean_acc, ' best_std: ', mean_std)
+# print('test_acc: ', mean_acc, ' test_std: ', mean_std)
 
 
 ## Tips
@@ -60,7 +60,7 @@ for i in range(dnum):
 				best_epoch = np.argmax(mean_test_acc)
 				mean_acc = np.mean(test_accs[:, best_epoch])
 				mean_std = np.std(test_accs[:, best_epoch])
-				print('dataset: ',dataset, ' lr=', lr, ' hidden_size=', h, ' dropout', d, ' test_acc: ', mean_acc, ' best_std: ', mean_std)
+				print('dataset: ',dataset, ' lr=', lr, ' hidden_size=', h, ' dropout', d, ' test_acc: ', mean_acc, ' test_std: ', mean_std)
 				results_acc.append(mean_acc) 
 				results_std.append(mean_std)
 				if mean_acc > best_test_acc[i]:
