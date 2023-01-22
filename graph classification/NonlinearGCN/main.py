@@ -30,8 +30,8 @@ args = parser.parse_args()
 
 
 ## Tips
-"Note that If the results are inconsistent with reported ones due to differences in python environment or equipment," 
-"you can get your own parameters in the following ways:"
+"Note that If the results are inconsistent with reported ones due to different initialization and experimental environment," 
+"one can tune the parameters in the following ways:"
 datasets = ['ptc-mr', 'proteins','mutag']#, 'ptc-mr', 'proteins'
 dnum = len(datasets)
 lrs = [0.01, 0.001]
