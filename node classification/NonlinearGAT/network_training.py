@@ -29,7 +29,7 @@ class Training:
         self.inner = args.inner_steps
         self.num = num
         self.result = 0
-        if self.data == 'citeseer':
+        if self.dataset == 'citeseer':
             if self.aggtype == 'Generalized-mean' or self.aggtype ==  'Polynomial':
                 self.lr = 0.02
 
@@ -55,7 +55,7 @@ class Training:
             self.model = NonlinearGAT_P(nfeat=self.features.shape[1], nhid=self.hidden, nclass=int(self.labels.max()) + 1, dropout=self.dropout, alpha=self.alpha, nheads=self.nb_heads, s_f=self.s_f)
         if args.aggtype == 'Softmax':
             self.model = NonlinearGAT_S(nfeat=self.features.shape[1], nhid=self.hidden, nclass=int(self.labels.max()) + 1, dropout=self.dropout, alpha=self.alpha, nheads=self.nb_heads, s_f=self.s_f)
-        self.estimator = EstimateP(self.nb_heads)
+        self.estimator = EstimateP(self.nb_heads, self.dataset)
 
         if torch.cuda.is_available():
             device = torch.device("cuda:%d" % 0)
