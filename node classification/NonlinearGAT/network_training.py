@@ -29,6 +29,9 @@ class Training:
         self.inner = args.inner_steps
         self.num = num
         self.result = 0
+        if self.data == 'citeseer':
+            if self.aggtype == 'Generalized-mean' or self.aggtype ==  'Polynomial':
+                self.lr = 0.02
 
         random.seed(self.seed)
         np.random.seed(self.seed)
