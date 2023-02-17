@@ -34,7 +34,7 @@ args = parser.parse_args()
 "one can tune the parameters in the following ways:"
 datasets = ['ptc-mr', 'proteins','mutag']#, 'ptc-mr', 'proteins'
 dnum = len(datasets)
-lrs = [0.01, 0.001]
+lrs = [0.01, 0.03, 0.001]
 dropouts = [0., 0.3, 0.5]
 hidden_size = [32, 64]
 
